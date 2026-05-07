@@ -5,16 +5,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>🏓 Ténis de Mesa</title>
-
-  <!-- PWA -->
-
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a7a3a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Ténis de Mesa" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -25,18 +23,20 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     #root { max-width: 500px; margin: 0 auto; background: #f4f7f4; min-height: 100vh; }
+    #loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 12px;
+      font-family: 'Courier New', monospace; color: #fff; font-size: 14px;
+    }
   </style>
-
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="app.js"></script>
+  <div id="root"><div id="loading"><span style="font-size:40px">🏓</span>A carregar...</div></div>
+  <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(r => console.log('SW registado:', r.scope))
-          .catch(e => console.log('SW erro:', e));
+        navigator.serviceWorker.register('sw.js').catch(() => {});
       });
     }
   </script>
