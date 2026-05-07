@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8" />
@@ -6,18 +7,26 @@
   <title>🏓 Ténis de Mesa</title>
 
   <!-- PWA -->
+
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a7a3a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Ténis de Mesa" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f4f7f4; }
-    #root { max-width: 500px; margin: 0 auto; }
+    body {
+      background: #1a7a3a;
+      padding-top: env(safe-area-inset-top);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    #root { max-width: 500px; margin: 0 auto; background: #f4f7f4; min-height: 100vh; }
   </style>
+
 </head>
 <body>
   <div id="root"></div>
