@@ -1,7 +1,7 @@
 // Tenis de Mesa PWA - JS puro sem JSX, sem Babel
 if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
-  document.getElementById('root').innerHTML = '<div style="padding:40px;text-align:center;font-family:monospace;color:#c04040">❌ Erro a carregar React.<br>Verifica a tua ligação à internet e recarrega.</div>';
-  throw new Error('React não carregou');
+  document.getElementById('root').innerHTML = '<div style="padding:40px;text-align:center;font-family:monospace;color:#c04040">Erro a carregar React. Verifica a ligacao e recarrega.</div>';
+  throw new Error('React nao carregou');
 }
 const e = React.createElement;
 const { useState, useEffect } = React;
