@@ -13,13 +13,32 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #1a7a3a;
+      background: #2d6a40;
       padding-top: env(safe-area-inset-top);
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
       padding-bottom: env(safe-area-inset-bottom);
     }
-    #root { max-width: 500px; margin: 0 auto; background: #f4f7f4; min-height: 100vh; }
+    #root {
+      max-width: 740px;
+      margin: 0 auto;
+      background: #f4f7f4;
+      min-height: 100vh;
+    }
+    /* Desktop: adiciona sombra e margem vertical */
+    @media (min-width: 800px) {
+      body {
+        background: linear-gradient(160deg, #1a5a2a 0%, #2d8a4a 50%, #1a5a2a 100%);
+        min-height: 100vh;
+        padding: 30px 20px;
+      }
+      #root {
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,.3);
+        min-height: auto;
+      }
+    }
     #loading {
       display: flex; align-items: center; justify-content: center;
       height: 100vh; flex-direction: column; gap: 12px;
@@ -44,7 +63,7 @@
       document.getElementById('loading').innerHTML = '<span style="font-size:32px">❌</span><span>Erro a carregar React.<br>Verifica a ligação e recarrega.</span>';
     }
   </script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
