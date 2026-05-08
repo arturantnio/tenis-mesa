@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8" />
@@ -30,25 +29,34 @@
   </style>
 </head>
 <body>
-  <div id="root"><div id="loading"><span style="font-size:48px">🏓</span><span>A carregar...</span></div></div>
-
-  <!-- React primeiro, de forma síncrona -->
+  <div id="root">
+    <div id="loading">
+      <span style="font-size:48px">🏓</span>
+      <span>A carregar...</span>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
-  <!-- Só depois a app -->
-
-  <script src="app.js"></script>
+  <script>
+    // Confirma que React carregou antes de avançar
+    if (typeof React === 'undefined') {
+      document.getElementById('loading').innerHTML = '<span style="font-size:32px">❌</span><span>Erro a carregar React.<br>Verifica a ligação e recarrega.</span>';
+    }
+  </script>
+  <script src="app.js?v=3"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
+        // Desregista service workers antigos primeiro
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(reg) { reg.unregister(); });
+        });
+        // Regista o novo
         navigator.serviceWorker.register('sw.js').catch(function(){});
       });
     }
   </script>
-
 </body>
 </html>
