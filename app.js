@@ -24,7 +24,7 @@ const PLAYERS_INIT = [
   { id:'JG', name:'João Garcia',     pts:27, rkg:4  },
   { id:'RR', name:'Rui Ribeiro',     pts:28, rkg:5  },
   { id:'FA', name:'Flávio Antunes',  pts:27, rkg:6  },
-  { id:'CS', name:'Cláudio Silva',   pts:27, rkg:7  },
+  { id:'CS', name:'Cláudio Silva',   pts:28, rkg:7  },
   { id:'CM', name:'César Moreira',   pts:25, rkg:8  },
   { id:'PG', name:'Pedro Garcia',    pts:25, rkg:9  },
   { id:'HA', name:'Heider Antunes',  pts:22, rkg:10 },
@@ -120,6 +120,8 @@ const S = {
   cardSel:      { border:'2px solid #1a7a3a', background:'#f0faf2' },
   cardTarget:   { border:'2px solid #e0a020', background:'#fffbf0' },
   cardAbsent:   { border:'1px solid #e07070', background:'#fff5f5', opacity:.9 },
+  cardNoGame:   { display:'flex', justifyContent:'space-between', alignItems:'center', background:'#fffbf0', border:'2px solid #e0b020', borderRadius:12, padding:'13px 16px', marginBottom:8, boxShadow:'0 1px 4px rgba(0,0,0,.05)', cursor:'pointer' },
+  noGameLbl:    { fontSize:11, color:'#c07010', marginTop:2, fontWeight:600 },
   cl:           { display:'flex', alignItems:'center', gap:14 },
   cr:           { textAlign:'right' },
   pname:        { fontSize:15, fontWeight:600, color:'#1a2e1a' },
@@ -279,6 +281,7 @@ function App() {
   const [players,    setPlayers]    = useState(saved?.players    || PLAYERS_INIT);
   const [history,    setHistory]    = useState(saved?.history    || []);
   const [absences,   setAbsences]   = useState(saved?.absences   || []);
+  const [noGame,     setNoGame]     = useState(saved?.noGame     || []); // presente mas sem jogo (impar) - ganha 1pt
   const [jornada,    setJornada]    = useState(saved?.jornada    || JORNADA_INIT);
   const [jornadaStart, setJornadaStart] = useState(saved?.jornadaStart || dateStr());
   const [pastJornadas, setPastJornadas] = useState(saved?.pastJornadas || []);
@@ -304,7 +307,7 @@ function App() {
 
   // Persist
   useEffect(() => {
-    saveState({ players, history, absences, jornada, jornadaStart, pastJornadas, lastUpdate });
+    saveState({ players, history, absences, noGame, jornada, jornadaStart, pastJornadas, lastUpdate });
   }, [players, history, absences, jornada, jornadaStart, pastJornadas, lastUpdate]);
 
   // Session timeout
@@ -373,18 +376,40 @@ function App() {
 
   // --- ABSENCES ---
   function toggleAbs(id) {
+    // Se estava em noGame, remove de lá primeiro
+    setNoGame(prev => prev.filter(x => x !== id));
     setAbsences(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
   }
 
+  function toggleNoGame(id) {
+    // Se estava em absences, remove de lá primeiro
+    setAbsences(prev => prev.filter(x => x !== id));
+    setNoGame(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
+  }
+
   function applyAbs() {
-    if (!absences.length) { showToast('Nenhuma falta selecionada','#e0a020'); return; }
-    const ps = applyAbsenceRule(players, absences);
+    if (!absences.length && !noGame.length) { showToast('Nenhuma selecção feita','#e0a020'); return; }
+    // Aplica regra 13 para ausentes
+    let ps = absences.length ? applyAbsenceRule(players, absences) : players.map(p => ({...p}));
+    // Aplica 1pt para quem estava presente mas não jogou (impar)
+    noGame.forEach(id => {
+      const i = ps.findIndex(p => p.id === id);
+      if (i >= 0) ps[i] = { ...ps[i], pts: ps[i].pts + 1 };
+    });
+    const parts = [];
+    if (absences.length) parts.push('Faltas: ' + absences.join(', '));
+    if (noGame.length) parts.push('Sem jogo (+1pt): ' + noGame.join(', '));
     const entry = { id: Date.now(), type:'absence', time: nowStr(), author: authorLabel(),
       absent: [...absences], aNames: absences.map(id => players.find(p=>p.id===id)?.name || id),
-      desc: 'Faltas: ' + absences.join(', ') };
-    setPlayers(ps); setHistory(h => [entry,...h]); setAbsences([]);
+      noGame: [...noGame], noGameNames: noGame.map(id => players.find(p=>p.id===id)?.name || id),
+      desc: parts.join(' | ') };
+    setPlayers(ps); setHistory(h => [entry,...h]);
+    setAbsences([]); setNoGame([]);
     setLastUpdate(nowStr());
-    showToast(entry.absent.length + ' falta(s) processada(s)', '#e07070');
+    const msgs = [];
+    if (absences.length) msgs.push(absences.length + ' falta(s)');
+    if (noGame.length) msgs.push(noGame.length + ' sem jogo (+1pt)');
+    showToast(msgs.join(' | '), '#e07070');
     setTab('ranking');
   }
 
@@ -419,7 +444,7 @@ function App() {
 
   // --- RESET ---
   function doReset() {
-    setPlayers(PLAYERS_INIT); setHistory([]); setAbsences([]);
+    setPlayers(PLAYERS_INIT); setHistory([]); setAbsences([]); setNoGame([]);
     setJornada(JORNADA_INIT); setJornadaStart(dateStr());
     setPastJornadas([]); setLastUpdate('07/05/2026 (quarta-feira)');
     setMA(null); setMB(null); setWinId(null); setMyPl(null);
@@ -564,29 +589,65 @@ function App() {
 
       // ── FALTAS (admin) ──
       tab === 'absence' && e('div', null,
-        e('div', { style:S.secTitle }, 'Registar Não Comparências'),
-        e('div', { style:S.hint }, 'Seleciona quem não compareceu. A regra 13 é aplicada automaticamente.'),
+        e('div', { style:S.secTitle }, 'Presenças e Faltas'),
+
+        // Legenda
+        e('div', { style:{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'} },
+          e('div', { style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#2a8a2a'} }, e('span', { style:{fontSize:14} }, '✓'), 'Presente e jogou'),
+          e('div', { style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#c07010'} }, e('span', { style:{fontSize:14} }, '½'), 'Presente sem jogo (+1pt)'),
+          e('div', { style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#c04040'} }, e('span', { style:{fontSize:14} }, '✗'), 'Não compareceu')
+        ),
+
+        e('div', { style:S.hint }, 'Toca em cada jogador para alternar o estado. "Sem jogo" aplica-se quando há número ímpar de jogadores.'),
+
         ...sorted.map(p => {
-          const abs = absences.includes(p.id);
-          return e('div', { key:p.id, onClick:()=>toggleAbs(p.id), style:{...S.card,...(abs?S.cardAbsent:{})} },
+          const abs    = absences.includes(p.id);
+          const noJogo = noGame.includes(p.id);
+          const cardStyle = abs ? S.cardAbsent : noJogo ? S.cardNoGame : S.card;
+
+          function cycleState() {
+            if (!abs && !noJogo) {
+              // presente → sem jogo
+              toggleNoGame(p.id);
+            } else if (noJogo) {
+              // sem jogo → ausente
+              toggleNoGame(p.id);
+              setAbsences(prev => [...prev, p.id]);
+            } else {
+              // ausente → presente
+              toggleAbs(p.id);
+            }
+          }
+
+          return e('div', { key:p.id, onClick: cycleState, style:{...cardStyle, cursor:'pointer'} },
             e('div', { style:S.cl },
               e(Badge, { rank:p.rkg }),
               e('div', null, e('div', { style:S.pname }, p.name), e('div', { style:S.pid }, p.id))
             ),
             e('div', { style:S.cr },
               e('div', { style:S.pts }, p.pts, e('span', { style:S.ptsl }, 'pts')),
-              abs ? e('div', { style:S.absentLbl }, '🚫 ausente') : e('div', { style:{fontSize:11,color:'#2a8a2a'} }, '✓ presente')
+              abs    ? e('div', { style:S.absentLbl }, '✗ não compareceu') :
+              noJogo ? e('div', { style:S.noGameLbl  }, '½ sem jogo +1pt') :
+                       e('div', { style:{fontSize:11,color:'#2a8a2a'} }, '✓ presente')
             )
           );
         }),
-        absences.length > 0 && e('div', { style:S.absPrev },
-          e('span', { style:{color:'#c04040',fontWeight:700} }, 'Ausentes (' + absences.length + '): '),
-          absences.map(id => players.find(p=>p.id===id)?.name).join(', ')
+
+        (absences.length > 0 || noGame.length > 0) && e('div', { style:{marginTop:12} },
+          absences.length > 0 && e('div', { style:S.absPrev },
+            e('span', { style:{color:'#c04040',fontWeight:700} }, 'Não compareceram (' + absences.length + '): '),
+            absences.map(id => players.find(p=>p.id===id)?.name).join(', ')
+          ),
+          noGame.length > 0 && e('div', { style:{...S.absPrev, background:'#fff8f0', borderColor:'#f0d090', color:'#7a5010', marginTop:6} },
+            e('span', { style:{color:'#c07010',fontWeight:700} }, 'Sem jogo, +1pt (' + noGame.length + '): '),
+            noGame.map(id => players.find(p=>p.id===id)?.name).join(', ')
+          )
         ),
+
         e('button', {
-          style:{...S.confirmBtn,...(absences.length===0?S.btnDis:{background:'#c04040',border:'2px solid #c04040',color:'#fff'})},
-          onClick:applyAbs, disabled:absences.length===0
-        }, '🚫 Processar Faltas (' + absences.length + ')')
+          style:{...S.confirmBtn,...(absences.length===0&&noGame.length===0?S.btnDis:{background:'#c04040',border:'2px solid #c04040',color:'#fff'})},
+          onClick:applyAbs, disabled:absences.length===0&&noGame.length===0
+        }, '✅ Processar (' + absences.length + ' faltas, ' + noGame.length + ' sem jogo)')
       ),
 
       // ── JORNADAS (admin) ──
